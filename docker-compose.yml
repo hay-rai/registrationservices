@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  postgres:
+    restart: always
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data  # Optional: persists database data
+    networks:
+      - app-network
+
+  registrationservices:
+    image: registrationservices:latest  # You will build this Docker image for the Spring Boot app
+    build: .  # Builds the Spring Boot app from the current directory
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mydatabase
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+    ports:
+      - "8080:8080"  # Exposes the Spring Boot app on port 8080-8081
+    depends_on:
+      - postgres  # Ensures the db service is up before myapp starts
+    deploy:
+#      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - app-network
+
+volumes:
+  postgres-data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
